@@ -4,4 +4,9 @@ version = "0.1.0"
 authors = ["Sol Toder <ajaxgb@gmail.com>"]
 edition = "2021"
 
+[[bin]]
+name = "day01"
+path = "src/day01/main.rs"
+
 [dependencies]
+arrayvec = "0.7.2"
