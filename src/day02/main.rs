@@ -14,7 +14,7 @@ impl const PartialEq for Hand {
 }
 
 impl Hand {
-    pub const fn beats(self) -> Self {
+    pub const fn wins_against(self) -> Self {
         match self {
             Self::Rock => Self::Scissors,
             Self::Paper => Self::Rock,
@@ -22,13 +22,29 @@ impl Hand {
         }
     }
 
+    pub const fn loses_against(self) -> Self {
+        match self {
+            Self::Rock => Self::Paper,
+            Self::Paper => Self::Scissors,
+            Self::Scissors => Self::Rock,
+        }
+    }
+
+    pub const fn opponent_for(self, outcome: Outcome) -> Self {
+        match outcome {
+            Outcome::Win => self.wins_against(),
+            Outcome::Draw => self,
+            Outcome::Lose => self.loses_against(),
+        }
+    }
+
     pub const fn against(self, other: Hand) -> Outcome {
-        if self.beats() == other {
+        if self.wins_against() == other {
             Outcome::Win
-        } else if other.beats() == self {
-            Outcome::Lose
-        } else {
+        } else if self == other {
             Outcome::Draw
+        } else {
+            Outcome::Lose
         }
     }
 
@@ -63,6 +79,14 @@ pub enum Outcome {
 }
 
 impl Outcome {
+    pub const fn invert(self) -> Self {
+        match self {
+            Self::Win => Self::Lose,
+            Self::Draw => Self::Draw,
+            Self::Lose => Self::Win,
+        }
+    }
+
     pub const fn score(self) -> u32 {
         match self {
             Self::Win => 6,
@@ -70,22 +94,42 @@ impl Outcome {
             Self::Lose => 0,
         }
     }
+
+    pub const fn from_char(c: char, base: char) -> Option<Self> {
+        Some(match (c as u32).checked_sub(base as u32) {
+            Some(0) => Self::Lose,
+            Some(1) => Self::Draw,
+            Some(2) => Self::Win,
+            _ => return None,
+        })
+    }
 }
 
 fn main() {
-    let mut total_score = 0;
+    let mut total_score_p1 = 0;
+    let mut total_score_p2 = 0;
 
     for strat in include_str!("input.txt").lines() {
         let mut strat = strat.chars();
-        let theirs = Hand::from_char(strat.next().unwrap(), 'A').unwrap();
+        let strat_a = strat.next().unwrap();
         assert_eq!(strat.next(), Some(' '));
-        let mine = Hand::from_char(strat.next().unwrap(), 'X').unwrap();
-        assert_eq!(strat.next(), None);
+        let strat_b = strat.next().unwrap();
 
-        let outcome = mine.against(theirs);
-        let score = mine.score() + outcome.score();
-        total_score += score;
+        let theirs = Hand::from_char(strat_a, 'A').unwrap();
+        // Part 1
+        {
+            let mine = Hand::from_char(strat_b, 'X').unwrap();
+            let outcome = mine.against(theirs);
+            total_score_p1 += mine.score() + outcome.score();
+        }
+        // Part 2
+        {
+            let outcome = Outcome::from_char(strat_b, 'X').unwrap();
+            let mine = theirs.opponent_for(outcome.invert());
+            total_score_p2 += mine.score() + outcome.score();
+        }
     }
 
-    println!("Total score: {total_score}");
+    println!("Total score, part 1: {total_score_p1}");
+    println!("Total score, part 2: {total_score_p2}");
 }
