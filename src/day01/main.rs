@@ -7,8 +7,8 @@ fn main() {
         .max_n::<3>();
 
     println!("Max 3 elves: {:?}", max_elves);
-    
+
     let max_elves_total: u32 = max_elves.into_iter().sum();
-    
+
     println!("Max 3 elves total: {}", max_elves_total);
 }
