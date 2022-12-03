@@ -1,6 +1,7 @@
 #![feature(exact_size_is_empty)]
 #![feature(const_trait_impl)]
 #![feature(const_mut_refs)]
+#![feature(iter_array_chunks)]
 
 use std::fmt::{self, Debug};
 use std::num::NonZeroU8;
@@ -22,9 +23,9 @@ impl Item {
         }))
     }
 
-    pub const fn from_priority(p: u8) -> Option<Self> {
-        if Self::MIN_PRIORITY <= p && p <= Self::MAX_PRIORITY {
-            Some(Self(unsafe { NonZeroU8::new_unchecked(p) }))
+    pub const fn from_index(p: u8) -> Option<Self> {
+        if p < Self::MAX_PRIORITY {
+            Some(Self(unsafe { NonZeroU8::new_unchecked(p + 1) }))
         } else {
             None
         }
@@ -38,8 +39,8 @@ impl Item {
         }) as char
     }
 
-    pub const fn priority(self) -> u8 {
-        self.0.get()
+    pub const fn priority(self) -> u32 {
+        self.0.get() as u32
     }
 }
 
@@ -80,11 +81,11 @@ impl ItemSet {
     pub const fn remove(&mut self, item: Item) {
         self.0 &= !Self::item_to_flag(item);
     }
-    
+
     pub const fn union(&self, other: &Self) -> Self {
         Self(self.0 | other.0)
     }
-    
+
     pub const fn intersection(&self, other: &Self) -> Self {
         Self(self.0 & other.0)
     }
@@ -94,7 +95,7 @@ impl ItemSet {
             None
         } else {
             let index = self.0.trailing_zeros();
-            Item::from_priority(index as u8 + 1)
+            Item::from_index(index as u8)
         }
     }
 
@@ -104,7 +105,7 @@ impl ItemSet {
         } else {
             let index = self.0.trailing_zeros();
             self.0 &= !(1 << index as u64);
-            Item::from_priority(index as u8 + 1)
+            Item::from_index(index as u8)
         }
     }
 
@@ -196,18 +197,30 @@ impl Debug for ItemSet {
 }
 
 fn main() {
-    let mut total_priority = 0;
+    let mut mispacked_sum = 0;
+    let mut badges_sum = 0;
 
-    for rucksack in include_str!("input.txt").lines() {
-        let (left, right) = rucksack.split_at(rucksack.len() / 2);
-        let left: ItemSet = left.chars().map(|c| Item::from_char(c).unwrap()).collect();
-        let right: ItemSet = right.chars().map(|c| Item::from_char(c).unwrap()).collect();
-        for item in left.intersection(&right) {
-            total_priority += item.priority() as u32;
-        }
+    for group in include_str!("input.txt").lines().array_chunks::<3>() {
+        let group_items = group
+            .map(|rucksack| {
+                let (left, right) = rucksack.split_at(rucksack.len() / 2);
+                let left: ItemSet = left.chars().map(|c| Item::from_char(c).unwrap()).collect();
+                let right: ItemSet = right.chars().map(|c| Item::from_char(c).unwrap()).collect();
+                for item in left.intersection(&right) {
+                    mispacked_sum += item.priority();
+                }
+                left.union(&right)
+            })
+            .into_iter()
+            .reduce(|a, b| a.intersection(&b))
+            .unwrap();
+        assert_eq!(group_items.len(), 1);
+        let badge = group_items.first().unwrap();
+        badges_sum += badge.priority();
     }
 
-    println!("Total priority: {total_priority}");
+    println!("Total mispacked priority: {mispacked_sum}");
+    println!("Total badge priority: {badges_sum}");
 }
 
 #[cfg(test)]
@@ -223,7 +236,7 @@ mod tests {
             let item = Item::from_char(c).unwrap();
             assert_eq!(item.to_char(), c);
             assert_eq!(item.priority() as usize, i + 1);
-            assert_eq!(Item::from_priority(i as u8 + 1), Some(item));
+            assert_eq!(Item::from_index(i as u8), Some(item));
             assert_eq!(format!("{item:?}"), format!("Item({c:?})"));
         }
     }
@@ -233,8 +246,8 @@ mod tests {
         for c in "\0\x01?@[\\]^_`{|}\x7f\u{80}\u{fe}\u{ff}\u{100}".chars() {
             assert_eq!(Item::from_char(c), None);
         }
-        for p in [0, 53, 54, 55, 127, 128, 254, 255] {
-            assert_eq!(Item::from_priority(p), None);
+        for p in [52, 53, 54, 55, 127, 128, 254, 255] {
+            assert_eq!(Item::from_index(p), None);
         }
     }
 }
