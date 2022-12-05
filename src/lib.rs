@@ -1,9 +1,13 @@
+#![feature(iter_next_chunk)]
+
 use arrayvec::ArrayVec;
 
 pub trait IteratorUtils: Iterator + Sized {
     fn max_n<const N: usize>(self) -> ArrayVec<Self::Item, N>
     where
         Self::Item: Ord;
+
+    fn array_chunks_sep<const N: usize, const S: usize>(self) -> ArrayChunksSep<Self, N, S>;
 }
 
 #[inline]
@@ -50,6 +54,27 @@ impl<T: Iterator> IteratorUtils for T {
         }
 
         results
+    }
+
+    fn array_chunks_sep<const N: usize, const S: usize>(self) -> ArrayChunksSep<Self, N, S> {
+        assert_ne!(N, 0);
+        ArrayChunksSep(self)
+    }
+}
+
+pub struct ArrayChunksSep<I: Iterator, const N: usize, const S: usize>(I);
+
+impl<I: Iterator, const N: usize, const S: usize> Iterator for ArrayChunksSep<I, N, S> {
+    type Item = [I::Item; N];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let chunk = self.0.next_chunk().ok()?;
+        for _ in 0..S {
+            if self.0.next().is_none() {
+                break;
+            }
+        }
+        Some(chunk)
     }
 }
 
