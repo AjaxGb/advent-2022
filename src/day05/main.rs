@@ -1,5 +1,8 @@
 #![feature(let_chains)]
 #![feature(iter_array_chunks)]
+#![feature(get_many_mut)]
+
+use std::fmt::{self, Write};
 
 use advent_2022::IteratorUtils;
 
@@ -45,31 +48,57 @@ impl Stacks {
         }
     }
 
+    pub fn move_group_from_to(&mut self, size: usize, from: usize, to: usize) {
+        if from != to {
+            let [from, to] = self.stacks.get_many_mut([from - 1, to - 1]).unwrap();
+            let keep_from = from.crates.len() - size;
+            let values = &from.crates[keep_from..];
+            to.crates.extend_from_slice(values);
+            from.crates.truncate(keep_from);
+        }
+    }
+
     pub fn stacks(&self) -> &[Stack] {
         self.stacks.as_ref()
+    }
+
+    pub fn tops<'a>(&'a self) -> StackTops<'a> {
+        StackTops(self)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct StackTops<'a>(&'a Stacks);
+
+impl fmt::Display for StackTops<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for stack in self.0.stacks() {
+            f.write_char(stack.top().unwrap_or(' '))?;
+        }
+        Ok(())
     }
 }
 
 fn main() {
     let mut lines = include_str!("input.txt").lines();
-    let mut stacks = Stacks::parse(&mut lines);
+    let mut stacks_p1 = Stacks::parse(&mut lines);
+    let mut stacks_p2 = stacks_p1.clone();
 
     for line in lines {
         let mut line = line.split(' ');
         assert_eq!(line.next(), Some("move"));
-        let num_crates: u32 = line.next().unwrap().parse().unwrap();
+        let num_crates = line.next().unwrap().parse().unwrap();
         assert_eq!(line.next(), Some("from"));
         let from = line.next().unwrap().parse().unwrap();
         assert_eq!(line.next(), Some("to"));
         let to = line.next().unwrap().parse().unwrap();
+
         for _ in 0..num_crates {
-            stacks.move_from_to(from, to);
+            stacks_p1.move_from_to(from, to);
         }
+        stacks_p2.move_group_from_to(num_crates, from, to);
     }
 
-    print!("Top of stacks: [");
-    for stack in stacks.stacks() {
-        print!("{}", stack.top().unwrap());
-    }
-    println!("]")
+    println!("Top of stacks P1: [{}]", stacks_p1.tops());
+    println!("Top of stacks P2: [{}]", stacks_p2.tops());
 }
