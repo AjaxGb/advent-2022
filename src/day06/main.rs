@@ -1,22 +1,32 @@
 fn all_unique(buffer: &[char]) -> bool {
-    if let Some(last_index) = buffer.len().checked_sub(1) {
-        for i in 0..last_index {
-            if buffer[(i + 1)..].contains(&buffer[i]) {
-                return false;
-            }
+    let mut flags = 0u32;
+    for &c in buffer {
+        assert!(c.is_ascii_lowercase());
+        let flag = 1 << (c as u32 - 'a' as u32);
+        if flags & flag != 0 {
+            return false;
         }
+        flags |= flag;
     }
     true
 }
 
-fn main() {
-    let mut signal = include_str!("input.txt").trim().chars();
-    let mut buffer: [char; 4] = std::array::from_fn(|_| signal.next().unwrap());
-    let mut pos = buffer.len();
+fn message_start_index<const N: usize>(signal: &str) -> usize {
+    let mut signal = signal.chars();
+    let mut buffer: [char; N] = std::array::from_fn(|_| signal.next().unwrap());
+    let mut pos = N;
     while !all_unique(&buffer) {
         let c = signal.next().unwrap();
-        buffer[pos % buffer.len()] = c;
+        buffer[pos % N] = c;
         pos += 1;
     }
-    println!("Start of message at index {pos}");
+    pos
+}
+
+fn main() {
+    let signal = include_str!("input.txt").trim();
+    let packet_start = message_start_index::<4>(signal);
+    let message_start = message_start_index::<14>(signal);
+    println!("Start of packet at index {packet_start}");
+    println!("Start of message at index {message_start}");
 }
