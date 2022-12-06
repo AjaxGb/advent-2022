@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 fn all_unique(buffer: &[char]) -> bool {
     let mut flags = 0u32;
     for &c in buffer {
@@ -25,8 +27,13 @@ fn message_start_index<const N: usize>(signal: &str) -> usize {
 
 fn main() {
     let signal = include_str!("input.txt").trim();
+    let time_a = Instant::now();
     let packet_start = message_start_index::<4>(signal);
+    let time_b = Instant::now();
     let message_start = message_start_index::<14>(signal);
+    let time_c = Instant::now();
     println!("Start of packet at index {packet_start}");
+    println!("  Time: {:?}", time_b - time_a);
     println!("Start of message at index {message_start}");
+    println!("  Time: {:?}", time_c - time_b);
 }
