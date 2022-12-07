@@ -54,6 +54,7 @@ struct TreeNode {
 pub struct FileTree {
     nodes: Vec<TreeNode>,
     root_entries: DirEntries,
+    total_file_size: usize,
 }
 
 impl FileTree {
@@ -79,6 +80,10 @@ impl FileTree {
             send_root: true,
             tree: self,
         }
+    }
+    
+    pub fn total_file_size(&self) -> usize {
+        self.total_file_size
     }
 
     fn get_entry_by_id<'a>(&'a self, id: NodeId) -> FileTreeEntry<'a> {
@@ -116,6 +121,7 @@ impl FileTree {
             Entry::Vacant(entry) => entry.insert(new_node_id),
         };
         let data = if let Some(file_size) = file_size {
+            self.total_file_size += file_size;
             NodeData::File(file_size)
         } else {
             NodeData::Dir(DirEntries::default())
