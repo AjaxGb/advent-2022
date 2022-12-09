@@ -2,12 +2,12 @@ use std::collections::HashSet;
 use std::ops::{AddAssign, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct RopeVec {
+struct Vec2 {
     x: i32,
     y: i32,
 }
 
-impl RopeVec {
+impl Vec2 {
     pub const ZERO: Self = Self::new(0, 0);
 
     pub const fn new(x: i32, y: i32) -> Self {
@@ -29,17 +29,17 @@ impl RopeVec {
     }
 }
 
-impl AddAssign for RopeVec {
+impl AddAssign for Vec2 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
     }
 }
 
-impl Sub for RopeVec {
-    type Output = RopeVec;
+impl Sub for Vec2 {
+    type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn sub(self, rhs: Self) -> Self {
         Self {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -49,8 +49,8 @@ impl Sub for RopeVec {
 
 #[derive(Debug, Clone)]
 struct Rope<const N: usize> {
-    knots: [RopeVec; N],
-    tail_history: HashSet<RopeVec>,
+    knots: [Vec2; N],
+    tail_history: HashSet<Vec2>,
 }
 
 impl<const N: usize> Rope<N> {
@@ -59,26 +59,26 @@ impl<const N: usize> Rope<N> {
             panic!("Rope must have at least one element");
         }
         let mut tail_history = HashSet::new();
-        tail_history.insert(RopeVec::ZERO);
+        tail_history.insert(Vec2::ZERO);
         Self {
-            knots: [RopeVec::ZERO; N],
+            knots: [Vec2::ZERO; N],
             tail_history,
         }
     }
 
-    pub const fn head(&self) -> RopeVec {
+    pub const fn head(&self) -> Vec2 {
         self.knots[0]
     }
 
-    pub const fn tail(&self) -> RopeVec {
+    pub const fn tail(&self) -> Vec2 {
         self.knots[N - 1]
     }
 
-    pub const fn tail_history(&self) -> &HashSet<RopeVec> {
+    pub const fn tail_history(&self) -> &HashSet<Vec2> {
         &self.tail_history
     }
 
-    fn simulate_knot(target: RopeVec, knot: &mut RopeVec) -> bool {
+    fn simulate_knot(target: Vec2, knot: &mut Vec2) -> bool {
         let to_target = target - *knot;
         let dist = to_target.abs();
         let knot_moves = dist.y > 1 || dist.x > 1;
@@ -88,7 +88,7 @@ impl<const N: usize> Rope<N> {
         knot_moves
     }
 
-    pub fn move_head(&mut self, offset: RopeVec) {
+    pub fn move_head(&mut self, offset: Vec2) {
         self.knots[0] += offset;
 
         let mut target_pos = self.head();
@@ -109,10 +109,10 @@ fn main() {
     for line in include_str!("input.txt").lines() {
         let (dir, dist) = line.split_once(' ').unwrap();
         let offset = match dir {
-            "U" => RopeVec::new(0, -1),
-            "D" => RopeVec::new(0, 1),
-            "L" => RopeVec::new(-1, 0),
-            "R" => RopeVec::new(1, 0),
+            "U" => Vec2::new(0, -1),
+            "D" => Vec2::new(0, 1),
+            "L" => Vec2::new(-1, 0),
+            "R" => Vec2::new(1, 0),
             _ => panic!("unknown direction {dir:?}"),
         };
         let dist: u32 = dist.parse().unwrap();
