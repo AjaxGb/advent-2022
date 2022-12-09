@@ -52,7 +52,7 @@ fn main() {
             dir_sizes.insert(entry.clone(), total_size);
         }
     }
-    
+
     println!("Total size of directories <100,000: {total_small_dir_sizes}");
     println!("Size of directory to delete: {min_freeable_dir_size}");
 }

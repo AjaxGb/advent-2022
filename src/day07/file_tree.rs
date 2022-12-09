@@ -81,7 +81,7 @@ impl FileTree {
             tree: self,
         }
     }
-    
+
     pub fn total_file_size(&self) -> usize {
         self.total_file_size
     }
