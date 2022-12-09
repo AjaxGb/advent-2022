@@ -70,8 +70,16 @@ impl<const N: usize> Rope<N> {
         self.knots[0]
     }
 
+    fn head_mut(&mut self) -> &mut Vec2 {
+        &mut self.knots[0]
+    }
+
     pub const fn tail(&self) -> Vec2 {
         self.knots[N - 1]
+    }
+
+    fn tail_mut(&mut self) -> &mut Vec2 {
+        &mut self.knots[N - 1]
     }
 
     pub const fn tail_history(&self) -> &HashSet<Vec2> {
@@ -89,14 +97,14 @@ impl<const N: usize> Rope<N> {
     }
 
     pub fn move_head(&mut self, offset: Vec2) {
-        self.knots[0] += offset;
+        *self.head_mut() += offset;
 
         let mut target_pos = self.head();
         for curr_pos in &mut self.knots[1..N - 1] {
             Self::simulate_knot(target_pos, curr_pos);
             target_pos = *curr_pos;
         }
-        if Self::simulate_knot(target_pos, &mut self.knots[N - 1]) {
+        if Self::simulate_knot(target_pos, self.tail_mut()) {
             self.tail_history.insert(self.tail());
         }
     }
