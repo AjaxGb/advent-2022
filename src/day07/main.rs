@@ -1,4 +1,4 @@
-mod file_tree;
+pub mod file_tree;
 
 use std::collections::HashMap;
 
