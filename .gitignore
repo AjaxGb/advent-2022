@@ -1,1 +1,4 @@
 /target
+
+# Do not commit my inputs
+input.txt
