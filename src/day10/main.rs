@@ -3,7 +3,7 @@ use std::{num::ParseIntError, str::FromStr};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy)]
-enum Instr {
+pub enum Instr {
     NoOp,
     AddX(i32),
 }
@@ -18,7 +18,7 @@ impl Instr {
 }
 
 #[derive(Debug, Clone, Error)]
-enum ParseInstrError {
+pub enum ParseInstrError {
     #[error("cannot parse instruction from empty string")]
     Empty,
     #[error("unknown instruction name {0:?}")]
@@ -54,7 +54,7 @@ impl FromStr for Instr {
 }
 
 #[derive(Debug, Clone)]
-struct DeviceSim<I: Iterator<Item = Instr>> {
+pub struct Device<I: Iterator<Item = Instr>> {
     cycle: u32,
     register_x: i32,
     curr_instr: Option<Instr>,
@@ -62,12 +62,16 @@ struct DeviceSim<I: Iterator<Item = Instr>> {
     instrs: I,
 }
 
-impl<I: Iterator<Item = Instr>> DeviceSim<I> {
+impl<I: Iterator<Item = Instr>> Device<I> {
+    pub const SCREEN_WIDTH: u32 = 40;
+    pub const SCREEN_HEIGHT: u32 = 6;
+    pub const PIXEL_COUNT: u32 = Self::SCREEN_WIDTH * Self::SCREEN_HEIGHT;
+
     pub fn new(mut instrs: I) -> Self {
         let curr_instr = instrs.next();
         let wait_cycles = curr_instr.map_or(0, |i| i.cycles());
         Self {
-            cycle: 1,
+            cycle: 0,
             register_x: 1,
             curr_instr,
             wait_cycles,
@@ -80,11 +84,34 @@ impl<I: Iterator<Item = Instr>> DeviceSim<I> {
     }
 
     pub const fn curr_cycle(&self) -> u32 {
-        self.cycle
+        self.cycle + 1
     }
 
     pub const fn register_x(&self) -> i32 {
         self.register_x
+    }
+
+    pub const fn crt_pos_x(&self) -> u32 {
+        self.cycle % Self::SCREEN_WIDTH
+    }
+
+    pub const fn crt_pos_y(&self) -> u32 {
+        self.cycle / Self::SCREEN_WIDTH
+    }
+
+    pub const fn is_crt_on_screen(&self) -> bool {
+        self.cycle < Self::PIXEL_COUNT
+    }
+
+    pub const fn is_crt_end_of_line(&self) -> bool {
+        self.crt_pos_x() == Self::SCREEN_WIDTH - 1
+    }
+
+    pub const fn is_pixel_lit(&self) -> bool {
+        let sprite_min = self.register_x - 1;
+        let sprite_max = self.register_x + 1;
+        let crt_pos = self.crt_pos_x() as i32;
+        sprite_min <= crt_pos && crt_pos <= sprite_max
     }
 
     pub fn exec_cycle(&mut self) {
@@ -109,17 +136,27 @@ fn main() {
     let instrs = include_str!("input.txt")
         .lines()
         .map(|s| s.parse().unwrap());
-    let mut device = DeviceSim::new(instrs);
+    let mut device = Device::new(instrs);
+
+    println!("----------------------------------------");
     let mut total_signals = 0;
-    while !device.is_done() && device.curr_cycle() <= 220 {
-        let cycle = device.curr_cycle();
-        if cycle % 40 == 20 {
-            let reg_x = device.register_x();
-            let signal = cycle as i64 * reg_x as i64;
-            println!("Cycle {cycle}: X = {reg_x}, signal = {signal}");
-            total_signals += signal;
+    while device.is_crt_on_screen() {
+        if device.curr_cycle() % 40 == 20 {
+            let cycle = device.curr_cycle() as i64;
+            let reg_x = device.register_x() as i64;
+            total_signals += cycle * reg_x;
+        }
+        if device.is_pixel_lit() {
+            print!("#");
+        } else {
+            print!(" ");
+        }
+        if device.is_crt_end_of_line() {
+            println!();
         }
         device.exec_cycle();
     }
+    println!("----------------------------------------");
+
     println!("Total signal strengths: {total_signals}");
 }
