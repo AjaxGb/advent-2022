@@ -1,5 +1,7 @@
 #![feature(iter_next_chunk)]
 
+use std::cmp::Ordering;
+
 use arrayvec::ArrayVec;
 
 pub trait IteratorUtils: Iterator + Sized {
@@ -7,22 +9,47 @@ pub trait IteratorUtils: Iterator + Sized {
     where
         Self::Item: Ord;
 
+    fn max_n_by<F, const N: usize>(self, f: F) -> ArrayVec<Self::Item, N>
+    where
+        F: FnMut(&Self::Item, &Self::Item) -> Ordering;
+
+    fn max_n_by_key<B: Ord, F, const N: usize>(self, f: F) -> ArrayVec<Self::Item, N>
+    where
+        F: FnMut(&Self::Item) -> B;
+
     fn array_chunks_sep<const N: usize, const S: usize>(self) -> ArrayChunksSep<Self, N, S>;
 }
 
 #[inline]
-fn find_less_than<T: Ord>(results: &impl AsRef<[T]>, new: &T) -> Option<usize> {
+fn find_less_than<T, F>(results: &impl AsRef<[T]>, new: &T, f: &mut F) -> Option<usize>
+where
+    F: FnMut(&T, &T) -> Ordering,
+{
     results
         .as_ref()
         .iter()
         .enumerate()
-        .find_map(|(i, old)| new.gt(old).then_some(i))
+        .find_map(|(i, old)| f(new, old).is_gt().then_some(i))
 }
 
 impl<T: Iterator> IteratorUtils for T {
-    fn max_n<const N: usize>(mut self) -> ArrayVec<Self::Item, N>
+    fn max_n<const N: usize>(self) -> ArrayVec<Self::Item, N>
     where
         Self::Item: Ord,
+    {
+        self.max_n_by(|a, b| a.cmp(b))
+    }
+
+    fn max_n_by_key<B: Ord, F, const N: usize>(self, mut f: F) -> ArrayVec<Self::Item, N>
+    where
+        F: FnMut(&Self::Item) -> B,
+    {
+        self.max_n_by(|a, b| f(a).cmp(&f(b)))
+    }
+
+    fn max_n_by<F, const N: usize>(mut self, mut f: F) -> ArrayVec<Self::Item, N>
+    where
+        F: FnMut(&Self::Item, &Self::Item) -> Ordering,
     {
         let mut results = ArrayVec::new();
         if N == 0 {
@@ -31,7 +58,7 @@ impl<T: Iterator> IteratorUtils for T {
 
         // Before results is full
         while let Some(item) = self.next() {
-            if let Some(i) = find_less_than(&results, &item) {
+            if let Some(i) = find_less_than(&results, &item, &mut f) {
                 // Insert new item before max smaller value
                 results.insert(i, item);
             } else {
@@ -45,7 +72,7 @@ impl<T: Iterator> IteratorUtils for T {
 
         // After results is full
         for item in self {
-            if let Some(i) = find_less_than(&results, &item) {
+            if let Some(i) = find_less_than(&results, &item, &mut f) {
                 // Drop smallest
                 results.pop();
                 // Insert new item before max smaller value
