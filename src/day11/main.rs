@@ -13,7 +13,7 @@ enum WorryOp {
 }
 
 impl WorryOp {
-    pub fn eval(&self, a: u32, b: u32) -> u32 {
+    pub fn eval(&self, a: u64, b: u64) -> u64 {
         match self {
             WorryOp::Add => a + b,
             WorryOp::Multiply => a * b,
@@ -40,11 +40,11 @@ impl FromStr for WorryOp {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum WorryValue {
     Old,
-    Const(u32),
+    Const(u64),
 }
 
 impl WorryValue {
-    pub fn eval(&self, old: u32) -> u32 {
+    pub fn eval(&self, old: u64) -> u64 {
         match self {
             WorryValue::Old => old,
             WorryValue::Const(val) => *val,
@@ -76,7 +76,7 @@ struct WorryExpr {
 }
 
 impl WorryExpr {
-    pub fn eval(&self, old: u32) -> u32 {
+    pub fn eval(&self, old: u64) -> u64 {
         self.op.eval(self.a.eval(old), self.b.eval(old))
     }
 }
@@ -110,12 +110,12 @@ impl FromStr for WorryExpr {
 #[derive(Debug, Clone)]
 struct Monkey {
     id: usize,
-    items: Vec<u32>,
+    items: Vec<u64>,
     operation: WorryExpr,
-    test_divisor: u32,
+    test_divisor: u64,
     true_target: usize,
     false_target: usize,
-    items_inspected: u32,
+    items_inspected: u64,
 }
 
 #[derive(Debug, Error)]
@@ -159,8 +159,8 @@ impl FromStr for Monkey {
             .map_err(Self::Err::InvalidId)?;
         let items = parse_line!("  Starting items: ")
             .split(", ")
-            .map(|s| s.parse::<u32>())
-            .collect::<Result<Vec<u32>, _>>()
+            .map(|s| s.parse::<u64>())
+            .collect::<Result<Vec<_>, _>>()
             .map_err(Self::Err::InvalidItem)?;
         let operation = parse_line!("  Operation: new = ").parse()?;
         let test_divisor = parse_line!("  Test: divisible by ")
@@ -185,18 +185,10 @@ impl FromStr for Monkey {
     }
 }
 
-fn main() {
-    let mut monkeys: Vec<_> = include_str!("input.txt")
-        .split("\n\n")
-        .enumerate()
-        .map(|(i, monkey_def)| {
-            let monkey: Monkey = monkey_def.parse().unwrap();
-            assert_eq!(monkey.id, i);
-            monkey
-        })
-        .collect();
+fn run_monkeys(mut monkeys: Vec<Monkey>, wrap_at: u64, is_p1: bool) {
+    let rounds = if is_p1 { 20 } else { 10_000 };
 
-    for _ in 0..20 {
+    for _ in 0..rounds {
         for monkey in 0..monkeys.len() {
             let (true_target, false_target) = {
                 let monkey = &monkeys[monkey];
@@ -205,9 +197,14 @@ fn main() {
             let [monkey, true_target, false_target] = monkeys
                 .get_many_mut([monkey, true_target, false_target])
                 .unwrap();
+
             for item_worry in monkey.items.drain(..) {
-                let item_worry = monkey.operation.eval(item_worry) / 3;
+                let mut item_worry = monkey.operation.eval(item_worry);
                 monkey.items_inspected += 1;
+                if is_p1 {
+                    item_worry /= 3;
+                }
+                item_worry %= wrap_at;
                 if item_worry % monkey.test_divisor == 0 {
                     true_target.items.push(item_worry);
                 } else {
@@ -233,9 +230,29 @@ fn main() {
     }
     println!();
 
-    let monkey_business: u32 = best_monkeys
+    let monkey_business: u64 = best_monkeys
         .into_iter()
         .map(|m| m.items_inspected)
         .product();
     println!("Monkey business: {monkey_business}");
+}
+
+fn main() {
+    let monkeys: Vec<_> = include_str!("input.txt")
+        .split("\n\n")
+        .enumerate()
+        .map(|(i, monkey_def)| {
+            let monkey: Monkey = monkey_def.parse().unwrap();
+            assert_eq!(monkey.id, i);
+            monkey
+        })
+        .collect();
+
+    let wrap_at = monkeys.iter().map(|m| m.test_divisor).product();
+
+    println!("Part 1:");
+    run_monkeys(monkeys.clone(), wrap_at, true);
+    println!();
+    println!("Part 2:");
+    run_monkeys(monkeys, wrap_at, false);
 }
