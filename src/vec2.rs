@@ -1,4 +1,5 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Vec2 {
@@ -71,5 +72,11 @@ impl SubAssign for Vec2 {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+
+impl Display for Vec2 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "<{}, {}>", self.x, self.y)
     }
 }

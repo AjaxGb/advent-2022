@@ -9,21 +9,14 @@ use thiserror::Error;
 
 #[derive(PartialEq, Eq)]
 struct Queued {
-    score: u32,
+    dist: u32,
     pos: Vec2,
     height: u8,
 }
 
-impl Queued {
-    pub const fn new(pos: Vec2, height: u8, best_path_to: u32, end: Vec2) -> Self {
-        let score = best_path_to + pos.manhattan_dist(end);
-        Self { score, pos, height }
-    }
-}
-
 impl Ord for Queued {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.score.cmp(&other.score).reverse()
+        self.dist.cmp(&other.dist).reverse()
     }
 }
 
@@ -53,29 +46,46 @@ impl Grid {
         }
     }
 
-    pub fn pathfind(&self) -> Option<u32> {
+    pub fn pathfind(&self) -> (Option<u32>, Option<(Vec2, u32)>) {
         let mut to_visit = BinaryHeap::new();
         let mut best_path_to = HashMap::new();
 
+        // Go from end to start, so we can find all starts
         {
-            let start = self.start;
-            let height = self.get(start)?;
+            let end = self.end;
+            let height = self.get(end).unwrap();
             let dist = 0;
-            to_visit.push(Queued::new(start, height, dist, self.end));
-            best_path_to.insert(start, dist);
+            to_visit.push(Queued {
+                dist,
+                pos: end,
+                height,
+            });
+            best_path_to.insert(end, dist);
         }
+
+        let mut to_orig_start = None;
+        let mut to_best_start = None;
 
         while let Some(Queued { pos, height, .. }) = to_visit.pop() {
             let dist = *best_path_to.get(&pos).unwrap();
-            if pos == self.end {
-                return Some(dist);
+            if pos == self.start && to_orig_start.is_none() {
+                to_orig_start = Some(dist);
+                if to_best_start.is_some() {
+                    break;
+                }
+            }
+            if height == 0 && to_best_start.is_none() {
+                to_best_start = Some((pos, dist));
+                if to_orig_start.is_some() {
+                    break;
+                }
             }
             for dir in Vec2::CARDINAL_DIRS {
                 let next_pos = pos + dir;
                 let Some(next_height) = self.get(next_pos) else {
                     continue;
                 };
-                if next_height <= height || next_height == height + 1 {
+                if next_height >= height || next_height == height - 1 {
                     let dist_to_next = dist + 1;
                     let is_better = match best_path_to.entry(next_pos) {
                         Entry::Occupied(mut e) => {
@@ -91,13 +101,17 @@ impl Grid {
                         }
                     };
                     if is_better {
-                        to_visit.push(Queued::new(next_pos, next_height, dist_to_next, self.end));
+                        to_visit.push(Queued {
+                            dist: dist_to_next,
+                            pos: next_pos,
+                            height: next_height,
+                        });
                     }
                 }
             }
         }
 
-        None
+        (to_orig_start, to_best_start)
     }
 }
 
@@ -185,5 +199,8 @@ impl FromStr for Grid {
 
 fn main() {
     let grid: Grid = include_str!("input.txt").parse().unwrap();
-    println!("Best path: {}", grid.pathfind().unwrap());
+    let (orig_start, best_start) = grid.pathfind();
+    println!("Distance to original start: {}", orig_start.unwrap());
+    let (best_start, dist_to_best_start) = best_start.unwrap();
+    println!("Distance to best start ({}): {}", best_start, dist_to_best_start);
 }
