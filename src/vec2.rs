@@ -32,6 +32,10 @@ impl Vec2 {
             y: self.y.signum(),
         }
     }
+
+    pub const fn manhattan_dist(self, other: Self) -> u32 {
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    }
 }
 
 impl Add for Vec2 {
