@@ -2,21 +2,7 @@
 
 use std::collections::HashSet;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-struct GridPos {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl GridPos {
-    pub const fn new(x: i32, y: i32) -> Self {
-        Self { x, y }
-    }
-
-    pub fn offset(&self, dx: i32, dy: i32) -> Self {
-        Self::new(self.x + dx, self.y + dy)
-    }
-}
+use advent_2022::Vec2;
 
 struct Grid {
     width: usize,
@@ -71,7 +57,7 @@ impl Grid {
         self.height as i32 - 1
     }
 
-    pub fn get(&self, pos: GridPos) -> Option<u8> {
+    pub fn get(&self, pos: Vec2) -> Option<u8> {
         let x: usize = pos.x.try_into().ok()?;
         let y: usize = pos.y.try_into().ok()?;
         if x < self.width && y < self.height {
@@ -81,48 +67,39 @@ impl Grid {
         }
     }
 
-    pub fn raycast_all_visible(
-        &self,
-        start: GridPos,
-        dx: i32,
-        dy: i32,
-        visible: &mut HashSet<GridPos>,
-    ) {
+    pub fn raycast_all_visible(&self, start: Vec2, offset: Vec2, visible: &mut HashSet<Vec2>) {
         let mut hit_height = self.get(start).unwrap();
         visible.insert(start);
-        let mut pos = start.offset(dx, dy);
+        let mut pos = start + offset;
         while let Some(h) = self.get(pos) {
             if h > hit_height {
                 hit_height = h;
                 visible.insert(pos);
             }
-            pos = pos.offset(dx, dy);
+            pos += offset;
         }
     }
 
-    pub fn raycast_scenic_dist(&self, start: GridPos, dx: i32, dy: i32) -> u32 {
+    pub fn raycast_scenic_dist(&self, start: Vec2, offset: Vec2) -> u32 {
         let stop_height = self.get(start).unwrap();
         let mut dist = 0;
-        let mut pos = start.offset(dx, dy);
+        let mut pos = start + offset;
         while let Some(h) = self.get(pos) {
             dist += 1;
             if h >= stop_height {
                 break;
             }
-            pos = pos.offset(dx, dy);
+            pos += offset;
         }
         dist
     }
 
-    pub fn scenic_score(&self, pos: GridPos) -> u32 {
-        let mut score = self.raycast_scenic_dist(pos, 0, 1);
-        if score != 0 {
-            score *= self.raycast_scenic_dist(pos, 0, -1);
-            if score != 0 {
-                score *= self.raycast_scenic_dist(pos, 1, 0);
-                if score != 0 {
-                    score *= self.raycast_scenic_dist(pos, -1, 0);
-                }
+    pub fn scenic_score(&self, pos: Vec2) -> u32 {
+        let mut score = 1;
+        for dir in Vec2::CARDINAL_DIRS {
+            score *= self.raycast_scenic_dist(pos, dir);
+            if score == 0 {
+                break;
             }
         }
         score
@@ -136,12 +113,12 @@ fn main() {
 
     let mut visible = HashSet::new();
     for y in 0..grid.height() as i32 {
-        grid.raycast_all_visible(GridPos::new(0, y), 1, 0, &mut visible);
-        grid.raycast_all_visible(GridPos::new(mx, y as i32), -1, 0, &mut visible);
+        grid.raycast_all_visible(Vec2::new(0, y), Vec2::RIGHT, &mut visible);
+        grid.raycast_all_visible(Vec2::new(mx, y), Vec2::LEFT, &mut visible);
     }
     for x in 0..grid.width() as i32 {
-        grid.raycast_all_visible(GridPos::new(x, 0), 0, 1, &mut visible);
-        grid.raycast_all_visible(GridPos::new(x, my), 0, -1, &mut visible);
+        grid.raycast_all_visible(Vec2::new(x, 0), Vec2::DOWN, &mut visible);
+        grid.raycast_all_visible(Vec2::new(x, my), Vec2::UP, &mut visible);
     }
 
     println!("Visible trees: {}", visible.len());
@@ -149,7 +126,7 @@ fn main() {
     let mut max_scenic_score = 0;
     for y in 0..grid.height() as i32 {
         for x in 0..grid.width() as i32 {
-            let scenic_score = grid.scenic_score(GridPos::new(x, y));
+            let scenic_score = grid.scenic_score(Vec2::new(x, y));
             if scenic_score > max_scenic_score {
                 max_scenic_score = scenic_score;
             }

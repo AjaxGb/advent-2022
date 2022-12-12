@@ -1,51 +1,6 @@
 use std::collections::HashSet;
-use std::ops::{AddAssign, Sub};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Vec2 {
-    x: i32,
-    y: i32,
-}
-
-impl Vec2 {
-    pub const ZERO: Self = Self::new(0, 0);
-
-    pub const fn new(x: i32, y: i32) -> Self {
-        Self { x, y }
-    }
-
-    pub const fn abs(self) -> Self {
-        Self {
-            x: self.x.abs(),
-            y: self.y.abs(),
-        }
-    }
-
-    pub const fn signum(self) -> Self {
-        Self {
-            x: self.x.signum(),
-            y: self.y.signum(),
-        }
-    }
-}
-
-impl AddAssign for Vec2 {
-    fn add_assign(&mut self, rhs: Self) {
-        self.x += rhs.x;
-        self.y += rhs.y;
-    }
-}
-
-impl Sub for Vec2 {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-        }
-    }
-}
+use advent_2022::Vec2;
 
 #[derive(Debug, Clone)]
 struct Rope<const N: usize> {
