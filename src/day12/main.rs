@@ -202,5 +202,8 @@ fn main() {
     let (orig_start, best_start) = grid.pathfind();
     println!("Distance to original start: {}", orig_start.unwrap());
     let (best_start, dist_to_best_start) = best_start.unwrap();
-    println!("Distance to best start ({}): {}", best_start, dist_to_best_start);
+    println!(
+        "Distance to best start ({}): {}",
+        best_start, dist_to_best_start
+    );
 }

@@ -1,5 +1,5 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::fmt::{self, Display, Formatter};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Vec2 {
