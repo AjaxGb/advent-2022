@@ -99,16 +99,35 @@ impl FromStr for Value {
     }
 }
 
+macro_rules! value {
+    ($n:literal) => {
+        $crate::Value::Int($n)
+    };
+    ([$($i:tt),*]) => {
+        $crate::Value::List(vec![
+            $(
+                value!($i)
+            ),*
+        ])
+    };
+}
+
 fn main() {
+    let divider_a = value!([[2]]);
+    let divider_b = value!([[6]]);
+    let mut all_packets = vec![divider_a.clone(), divider_b.clone()];
+    let mut right_order_pairs = 0usize;
+
     let mut lines = include_str!("input.txt").lines();
-    let mut right_lines = 0u32;
-    for i in 1.. {
+    for pair_num in 1.. {
         let a: Value = lines.next().unwrap().parse().unwrap();
         let b: Value = lines.next().unwrap().parse().unwrap();
 
         if a <= b {
-            right_lines += i;
+            right_order_pairs += pair_num;
         }
+        all_packets.push(a);
+        all_packets.push(b);
 
         match lines.next() {
             None => break,
@@ -117,5 +136,15 @@ fn main() {
         }
     }
 
-    println!("Right lines sum: {right_lines}");
+    println!("Correctly ordered pairs: {right_order_pairs}");
+
+    all_packets.sort();
+    let mut decoder_key = 1;
+    for (i, packet) in all_packets.iter().enumerate() {
+        if packet == &divider_a || packet == &divider_b {
+            decoder_key *= i + 1;
+        }
+    }
+
+    println!("Decoder key: {decoder_key}");
 }
