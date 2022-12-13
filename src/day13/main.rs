@@ -5,12 +5,12 @@ use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Eq)]
-pub enum Value {
+pub enum Packet {
     Int(u32),
-    List(Vec<Value>),
+    List(Vec<Self>),
 }
 
-impl Value {
+impl Packet {
     pub fn as_slice(&self) -> &[Self] {
         if let Self::List(list) = self {
             list.as_slice()
@@ -19,8 +19,8 @@ impl Value {
         }
     }
 
-    fn parse_one_value(s: &str) -> Result<(Self, &str), ParseValueError> {
-        use ParseValueError::*;
+    fn parse_one(s: &str) -> Result<(Self, &str), ParsePacketError> {
+        use ParsePacketError::*;
         if let Some(mut s) = s.strip_prefix('[') {
             let mut list = vec![];
             if let Some(trailing) = s.strip_prefix(']') {
@@ -30,7 +30,7 @@ impl Value {
                 return Err(UnclosedList);
             }
             loop {
-                let (value, trailing) = Self::parse_one_value(s)?;
+                let (value, trailing) = Self::parse_one(s)?;
                 list.push(value);
                 let (c, trailing) = {
                     let mut chars = trailing.chars();
@@ -52,7 +52,7 @@ impl Value {
     }
 }
 
-impl Ord for Value {
+impl Ord for Packet {
     fn cmp(&self, other: &Self) -> Ordering {
         if let (Self::Int(a), Self::Int(b)) = (self, other) {
             a.cmp(b)
@@ -62,35 +62,35 @@ impl Ord for Value {
     }
 }
 
-impl PartialOrd for Value {
+impl PartialOrd for Packet {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for Value {
+impl PartialEq for Packet {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
     }
 }
 
 #[derive(Debug, Clone, Error)]
-pub enum ParseValueError {
+pub enum ParsePacketError {
     #[error("invalid integer value: {0}")]
     InvalidInt(#[from] ParseIntError),
     #[error("invalid list separator: {0:?}")]
     InvalidSeparator(char),
     #[error("unclosed list value")]
     UnclosedList,
-    #[error("trailing data after the value")]
+    #[error("trailing data after the packet")]
     TrailingData,
 }
 
-impl FromStr for Value {
-    type Err = ParseValueError;
+impl FromStr for Packet {
+    type Err = ParsePacketError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (value, trailing) = Self::parse_one_value(s)?;
+        let (value, trailing) = Self::parse_one(s)?;
         if trailing.is_empty() {
             Ok(value)
         } else {
@@ -100,29 +100,29 @@ impl FromStr for Value {
 }
 
 #[macro_export]
-macro_rules! value {
+macro_rules! packet {
     ($n:literal) => {
-        $crate::Value::Int($n)
+        $crate::Packet::Int($n)
     };
     ([$($i:tt),*]) => {
-        $crate::Value::List(vec![
+        $crate::Packet::List(vec![
             $(
-                $crate::value!($i)
+                $crate::packet!($i)
             ),*
         ])
     };
 }
 
 fn main() {
-    let divider_a = value!([[2]]);
-    let divider_b = value!([[6]]);
+    let divider_a = packet!([[2]]);
+    let divider_b = packet!([[6]]);
     let mut all_packets = vec![divider_a.clone(), divider_b.clone()];
     let mut right_order_pairs = 0usize;
 
     let mut lines = include_str!("input.txt").lines();
     for pair_num in 1.. {
-        let a: Value = lines.next().unwrap().parse().unwrap();
-        let b: Value = lines.next().unwrap().parse().unwrap();
+        let a = lines.next().unwrap().parse().unwrap();
+        let b = lines.next().unwrap().parse().unwrap();
 
         if a <= b {
             right_order_pairs += pair_num;
