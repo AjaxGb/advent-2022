@@ -5,7 +5,7 @@ use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Eq)]
-enum Value {
+pub enum Value {
     Int(u32),
     List(Vec<Value>),
 }
@@ -99,6 +99,7 @@ impl FromStr for Value {
     }
 }
 
+#[macro_export]
 macro_rules! value {
     ($n:literal) => {
         $crate::Value::Int($n)
@@ -106,7 +107,7 @@ macro_rules! value {
     ([$($i:tt),*]) => {
         $crate::Value::List(vec![
             $(
-                value!($i)
+                $crate::value!($i)
             ),*
         ])
     };
