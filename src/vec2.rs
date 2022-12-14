@@ -2,12 +2,18 @@ use std::fmt::{self, Display, Formatter};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Vec2 {
-    pub x: i32,
-    pub y: i32,
+pub struct Vec2<T = i32> {
+    pub x: T,
+    pub y: T,
 }
 
-impl Vec2 {
+impl<T> Vec2<T> {
+    pub const fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl Vec2<i32> {
     pub const ZERO: Self = Self::new(0, 0);
 
     pub const UP: Self = Self::new(0, -1);
@@ -16,9 +22,8 @@ impl Vec2 {
     pub const RIGHT: Self = Self::new(1, 0);
     pub const CARDINAL_DIRS: [Self; 4] = [Self::UP, Self::RIGHT, Self::DOWN, Self::LEFT];
 
-    pub const fn new(x: i32, y: i32) -> Self {
-        Self { x, y }
-    }
+    pub const DOWN_LEFT: Self = Self::new(-1, 1);
+    pub const DOWN_RIGHT: Self = Self::new(1, 1);
 
     pub const fn abs(self) -> Self {
         Self {
@@ -39,43 +44,43 @@ impl Vec2 {
     }
 }
 
-impl Add for Vec2 {
-    type Output = Self;
+impl<T: Add> Add for Vec2<T> {
+    type Output = Vec2<T::Output>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
+        Vec2 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
     }
 }
 
-impl AddAssign for Vec2 {
+impl<T: AddAssign> AddAssign for Vec2<T> {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
     }
 }
 
-impl Sub for Vec2 {
-    type Output = Self;
+impl<T: Sub> Sub for Vec2<T> {
+    type Output = Vec2<T::Output>;
 
-    fn sub(self, rhs: Self) -> Self {
-        Self {
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vec2 {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
     }
 }
 
-impl SubAssign for Vec2 {
+impl<T: SubAssign> SubAssign for Vec2<T> {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
     }
 }
 
-impl Display for Vec2 {
+impl<T: Display> Display for Vec2<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "<{}, {}>", self.x, self.y)
     }
