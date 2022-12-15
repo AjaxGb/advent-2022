@@ -13,6 +13,22 @@ impl<T> Vec2<T> {
     }
 }
 
+impl<T: Clone> Vec2<T> {
+    pub fn with_x(&self, x: T) -> Self {
+        Self {
+            x,
+            y: self.y.clone(),
+        }
+    }
+
+    pub fn with_y(&self, y: T) -> Self {
+        Self {
+            x: self.x.clone(),
+            y,
+        }
+    }
+}
+
 impl Vec2<i32> {
     pub const ZERO: Self = Self::new(0, 0);
 

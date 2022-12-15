@@ -1,6 +1,7 @@
 #![feature(iter_next_chunk)]
 
 mod iter_utils;
+mod simple_parse;
 mod vec2;
 
 pub use iter_utils::*;

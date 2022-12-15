@@ -112,10 +112,10 @@ fn main() {
     let mut sim1: SandSim = include_str!("input.txt").parse().unwrap();
     let mut sim2 = sim1.clone();
     sim2.has_floor = true;
-    
+
     while !sim1.update() {}
     println!("Resting sand, Part 1: {}", sim1.resting_sand());
-    
+
     while !sim2.update() {}
     println!("Resting sand, Part 2: {}", sim2.resting_sand());
 }
