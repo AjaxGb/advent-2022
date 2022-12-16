@@ -1,5 +1,5 @@
 use std::fmt::{self, Display, Formatter};
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Vec2<T = i32> {
@@ -38,6 +38,8 @@ impl Vec2<i32> {
     pub const RIGHT: Self = Self::new(1, 0);
     pub const CARDINAL_DIRS: [Self; 4] = [Self::UP, Self::RIGHT, Self::DOWN, Self::LEFT];
 
+    pub const UP_LEFT: Self = Self::new(-1, -1);
+    pub const UP_RIGHT: Self = Self::new(1, -1);
     pub const DOWN_LEFT: Self = Self::new(-1, 1);
     pub const DOWN_RIGHT: Self = Self::new(1, 1);
 
@@ -93,6 +95,24 @@ impl<T: SubAssign> SubAssign for Vec2<T> {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+
+impl<T: Mul + Clone> Mul<T> for Vec2<T> {
+    type Output = Vec2<T::Output>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        Vec2 {
+            x: self.x * rhs.clone(),
+            y: self.y * rhs,
+        }
+    }
+}
+
+impl<T: MulAssign + Clone> MulAssign<T> for Vec2<T> {
+    fn mul_assign(&mut self, rhs: T) {
+        self.x *= rhs.clone();
+        self.y *= rhs;
     }
 }
 
